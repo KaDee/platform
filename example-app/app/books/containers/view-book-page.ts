@@ -5,7 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Subscription } from 'rxjs/Subscription';
 
-import * as fromRoot from '../reducers';
+import * as fromRoot from 'app/reducers';
 import * as book from '../actions/book';
 
 /**

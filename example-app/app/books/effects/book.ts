@@ -11,7 +11,7 @@ import { Observable } from 'rxjs/Observable';
 import { empty } from 'rxjs/observable/empty';
 import { of } from 'rxjs/observable/of';
 
-import { GoogleBooksService } from '../services/google-books';
+import { GoogleBooksService } from 'app/core/services/google-books';
 import * as book from '../actions/book';
 
 

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule } from '@angular/router';
+import { HttpModule } from '@angular/http';
 
 import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
@@ -11,24 +12,14 @@ import { StoreRouterConnectingModule } from '@ngrx/router-store';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { MaterialModule } from '@angular/material';
 
-import { ComponentsModule } from './components';
-import { BookEffects } from './effects/book';
-import { CollectionEffects } from './effects/collection';
-import { BookExistsGuard } from './guards/book-exists';
-
-import { AppComponent } from './containers/app';
-import { FindBookPageComponent } from './containers/find-book-page';
-import { ViewBookPageComponent } from './containers/view-book-page';
-import { SelectedBookPageComponent } from './containers/selected-book-page';
-import { CollectionPageComponent } from './containers/collection-page';
-import { NotFoundPageComponent } from './containers/not-found-page';
-
-import { GoogleBooksService } from './services/google-books';
+import { CoreModule } from './core/core.module';
+import { BooksModule } from './books/books.module';
 
 import { routes } from './routes';
 import { reducers } from './reducers';
 import { schema } from './db';
 
+import { AppComponent } from './core/containers/app';
 
 
 @NgModule({
@@ -36,8 +27,7 @@ import { schema } from './db';
     CommonModule,
     BrowserModule,
     BrowserAnimationsModule,
-    MaterialModule,
-    ComponentsModule,
+    HttpModule,
     RouterModule.forRoot(routes, { useHash: true }),
 
     /**
@@ -45,7 +35,7 @@ import { schema } from './db';
      * function or object map of reducer functions. If passed an object of
      * reducers, combineReducers will be run creating your application
      * meta-reducer. This returns all providers for an @ngrx/store
-     * based application.
+     * based application.sda
      */
     StoreModule.forRoot(reducers),
 
@@ -73,26 +63,17 @@ import { schema } from './db';
      *
      * See: https://github.com/ngrx/effects/blob/master/docs/api.md#run
      */
-    EffectsModule.run(BookEffects),
-    EffectsModule.run(CollectionEffects),
+    EffectsModule.forRoot([]),
 
     /**
      * `provideDB` sets up @ngrx/db with the provided schema and makes the Database
      * service available.
      */
     DBModule.provideDB(schema),
-  ],
-  declarations: [
-    AppComponent,
-    FindBookPageComponent,
-    SelectedBookPageComponent,
-    ViewBookPageComponent,
-    CollectionPageComponent,
-    NotFoundPageComponent
-  ],
-  providers: [
-    BookExistsGuard,
-    GoogleBooksService
+
+    CoreModule.forRoot(),
+    
+    BooksModule.forRoot()
   ],
   bootstrap: [
     AppComponent

@@ -9,12 +9,8 @@ import { BookDetailComponent } from './book-detail';
 import { BookPreviewComponent } from './book-preview';
 import { BookPreviewListComponent } from './book-preview-list';
 import { BookSearchComponent } from './book-search';
-import { LayoutComponent } from './layout';
-import { NavItemComponent } from './nav-item';
-import { SidenavComponent } from './sidenav';
-import { ToolbarComponent } from './toolbar';
 
-import { PipesModule } from '../pipes';
+import { PipesModule } from 'app/shared/pipes';
 
 
 export const COMPONENTS = [
@@ -23,10 +19,6 @@ export const COMPONENTS = [
   BookPreviewComponent,
   BookPreviewListComponent,
   BookSearchComponent,
-  LayoutComponent,
-  NavItemComponent,
-  SidenavComponent,
-  ToolbarComponent,
 ];
 
 

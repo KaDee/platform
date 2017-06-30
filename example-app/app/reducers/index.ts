@@ -1,4 +1,4 @@
-import { ActionReducerMap, createSelector, compose } from '@ngrx/store';
+import { ActionReducerMap, createSelector, createFeatureSelector, compose } from '@ngrx/store';
 import * as fromRouter from '@ngrx/router-store';
 import { environment } from '../../environments/environment';
 
@@ -34,10 +34,10 @@ import { storeFreeze } from 'ngrx-store-freeze';
  * the state of the reducer plus any selector functions. The `* as`
  * notation packages up all of the exports into a single object.
  */
-import * as fromSearch from './search';
-import * as fromBooks from './books';
-import * as fromCollection from './collection';
-import * as fromLayout from './layout';
+import * as fromSearch from 'app/books/reducers/search';
+import * as fromBooks from 'app/books/reducers/books';
+import * as fromCollection from 'app/books/reducers/collection';
+import * as fromLayout from 'app/layout/reducers/layout';
 
 
 /**
@@ -63,7 +63,7 @@ export const reducers: ActionReducerMap<State> = {
   search: fromSearch.reducer,
   books: fromBooks.reducer,
   collection: fromCollection.reducer,
-  layout: fromLayout.reducer,
+  layout: fromLayout.reducer
 };
 
 // const developmentReducer: ActionReducer<State> = compose(storeFreeze, combineReducers)(reducers);
@@ -93,7 +93,7 @@ export const reducers: ActionReducerMap<State> = {
  * }
  * ```
  */
-export const getBooksState = (state: State) => state.books;
+export const getBooksState = createFeatureSelector<fromBooks.State>('books');
 
 /**
  * Every reducer module exports selector functions, however child reducers
@@ -115,7 +115,7 @@ export const getBooksState = (state: State) => state.books;
  * Just like with the books selectors, we also have to compose the search
  * reducer's and collection reducer's selectors.
  */
-export const getSearchState = (state: State) => state.search;
+export const getSearchState = createFeatureSelector<fromSearch.State>('search');
 
 export const getSearchBookIds = createSelector(getSearchState, fromSearch.getIds);
 export const getSearchQuery = createSelector(getSearchState, fromSearch.getQuery);
@@ -132,7 +132,7 @@ export const getSearchResults = createSelector(getBookEntities, getSearchBookIds
 
 
 
-export const getCollectionState = (state: State) => state.collection;
+export const getCollectionState = createFeatureSelector<fromCollection.State>('collection');
 
 export const getCollectionLoaded = createSelector(getCollectionState, fromCollection.getLoaded);
 export const getCollectionLoading = createSelector(getCollectionState, fromCollection.getLoading);
@@ -149,6 +149,6 @@ export const isSelectedBookInCollection = createSelector(getCollectionBookIds, g
 /**
  * Layout Reducers
  */
-export const getLayoutState = (state: State) => state.layout;
+export const getLayoutState = createFeatureSelector<fromLayout.State>('layout');
 
 export const getShowSidenav = createSelector(getLayoutState, fromLayout.getShowSidenav);
