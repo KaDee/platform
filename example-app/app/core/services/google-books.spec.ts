@@ -1,33 +1,23 @@
 import { TestBed, inject } from '@angular/core/testing';
-import { Http, BaseRequestOptions, Response, ResponseOptions, RequestMethod } from '@angular/http';
-import { MockBackend, MockConnection } from '@angular/http/testing';
+import { Http } from '@angular/http';
+import { cold } from 'jasmine-marbles';
 import { GoogleBooksService } from './google-books';
 
 describe('Service: GoogleBooks', () => {
-  let service: GoogleBooksService = null;
-  let backend: MockBackend = null;
+  let service: GoogleBooksService;
+  let http: any;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        MockBackend,
-        BaseRequestOptions,
-        {
-          provide: Http,
-          useFactory: (backendInstance: MockBackend, defaultOptions: BaseRequestOptions) => {
-            return new Http(backendInstance, defaultOptions);
-          },
-          deps: [ MockBackend, BaseRequestOptions ]
-        },
+        { provide: Http, useValue: jasmine.createSpyObj('Http', ['get'])  },
         GoogleBooksService
       ]
     });
-  });
 
-  beforeEach(inject([GoogleBooksService, MockBackend], (googleBooksService: GoogleBooksService, mockBackend: MockBackend) => {
-    service = googleBooksService;
-    backend = mockBackend;
-  }));
+    service = TestBed.get(GoogleBooksService);
+    http = TestBed.get(Http);
+  });
 
   const data = {
     'title': 'Book Title',
@@ -44,39 +34,30 @@ describe('Service: GoogleBooks', () => {
 
   const queryTitle = 'Book Title';
 
-  it('should call the search api and return the search results', (done) => {
-    backend.connections.subscribe((connection: MockConnection) => {
-      const options = new ResponseOptions({
-        body: JSON.stringify(books)
-      });
-      connection.mockRespond(new Response(options));
-      expect(connection.request.method).toEqual(RequestMethod.Get);
-      expect(connection.request.url).toEqual(`https://www.googleapis.com/books/v1/volumes?q=${queryTitle}`);
-    });
+  it('should call the search api and return the search results', () => {
+    const httpResponse = {
+      json: () => books
+    };
 
-    service
-      .searchBooks(queryTitle)
-      .subscribe((res) => {
-        expect(res).toEqual(books.items);
-        done();
-      });
+    const response = cold('-a|', { a: httpResponse });
+    const expected = cold('-b|', { b: books.items });
+    http.get.and.returnValue(response);
+
+    expect(service.searchBooks(queryTitle)).toBeObservable(expected);
+    expect(http.get).toHaveBeenCalledWith(`https://www.googleapis.com/books/v1/volumes?q=${queryTitle}`);
   });
 
-  it('should retrieve the book from the volumeId', (done) => {
-    backend.connections.subscribe((connection: MockConnection) => {
-      const options = new ResponseOptions({
-        body: JSON.stringify(data)
-      });
-      connection.mockRespond(new Response(options));
-      expect(connection.request.method).toEqual(RequestMethod.Get);
-      expect(connection.request.url).toEqual(`https://www.googleapis.com/books/v1/volumes/${queryTitle}`);
-    });
-    service
-      .retrieveBook(queryTitle)
-      .subscribe((response) => {
-        expect(response).toEqual(data);
-        done();
-      });
+  it('should retrieve the book from the volumeId', () => {
+    const httpResponse = {
+      json: () => data
+    };
+
+    const response = cold('-a|', { a: httpResponse });
+    const expected = cold('-b|', { b: data });
+    http.get.and.returnValue(response);
+
+    expect(service.retrieveBook(data.volumeId)).toBeObservable(expected);
+    expect(http.get).toHaveBeenCalledWith(`https://www.googleapis.com/books/v1/volumes/${data.volumeId}`);
   });
 
 });

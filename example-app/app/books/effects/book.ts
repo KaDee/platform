@@ -4,15 +4,20 @@ import 'rxjs/add/operator/switchMap';
 import 'rxjs/add/operator/debounceTime';
 import 'rxjs/add/operator/skip';
 import 'rxjs/add/operator/takeUntil';
-import { Injectable } from '@angular/core';
+import { Injectable, InjectionToken, Optional, Inject } from '@angular/core';
 import { Effect, Actions, toPayload } from '@ngrx/effects';
 import { Action } from '@ngrx/store';
 import { Observable } from 'rxjs/Observable';
+import { Scheduler } from 'rxjs/Scheduler';
 import { empty } from 'rxjs/observable/empty';
 import { of } from 'rxjs/observable/of';
 
 import { GoogleBooksService } from 'app/core/services/google-books';
 import * as book from '../actions/book';
+import { Book } from 'app/books/models/book';
+
+export const SEARCH_DEBOUNCE = new InjectionToken<number>('Search Debounce');
+export const SEARCH_SCHEDULER = new InjectionToken<number>('Search Scheduler');
 
 
 /**
@@ -38,7 +43,7 @@ export class BookEffects {
   @Effect()
   search$: Observable<Action> = this.actions$
     .ofType(book.SEARCH)
-    .debounceTime(300)
+    .debounceTime(this.debounce, this.scheduler)
     .map(toPayload)
     .switchMap(query => {
       if (query === '') {
@@ -49,9 +54,14 @@ export class BookEffects {
 
       return this.googleBooks.searchBooks(query)
         .takeUntil(nextSearch$)
-        .map(books => new book.SearchCompleteAction(books))
+        .map((books: Book[]) => new book.SearchCompleteAction(books))
         .catch(() => of(new book.SearchCompleteAction([])));
     });
 
-    constructor(private actions$: Actions, private googleBooks: GoogleBooksService) { }
+    constructor(
+      private actions$: Actions,
+      private googleBooks: GoogleBooksService,
+      @Optional() @Inject(SEARCH_SCHEDULER) private scheduler: Scheduler,
+      @Optional() @Inject(SEARCH_DEBOUNCE) private debounce: number = 300
+    ) {}
 }

@@ -1,142 +1,138 @@
-import 'rxjs/add/observable/of';
-import 'rxjs/add/observable/throw';
-import { EffectsTestingModule, EffectsRunner } from '@ngrx/effects/testing';
+import { Actions } from '@ngrx/effects';
 import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs/observable/of';
+import { empty } from 'rxjs/observable/empty';
+import { cold, hot } from 'jasmine-marbles';
 import { CollectionEffects } from './collection';
 import { Database } from '@ngrx/db';
 import { Book } from '../models/book';
 import * as collection from '../actions/collection';
 import { Observable } from 'rxjs/Observable';
 
-describe('CollectionEffects', () => {
-  beforeEach(() => TestBed.configureTestingModule({
-    imports: [
-      EffectsTestingModule
-    ],
-    providers: [
-      CollectionEffects,
-      {
-        provide: Database,
-        useValue: jasmine.createSpyObj('database', ['open', 'query', 'insert', 'executeWrite'])
-      }
-    ]
-  }));
-
-  function setup() {
-    return {
-      db: TestBed.get(Database),
-      runner: TestBed.get(EffectsRunner),
-      collectionEffects: TestBed.get(CollectionEffects)
-    };
+export class TestActions extends Actions {
+  constructor() {
+    super(empty());
   }
+
+  set stream(source: Observable<any>) {
+    this.source = source;
+  }
+}
+
+export function getActions() {
+  return new TestActions();
+}
+
+describe('CollectionEffects', () => {
+  let db: any;
+  let effects: CollectionEffects;
+  let actions$: TestActions;
+
+  const book1 = {id: '111', volumeInfo: {}} as Book;
+  const book2 = {id: '222', volumeInfo: {}} as Book;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        CollectionEffects,
+        { provide: Database,  useValue: jasmine.createSpyObj('database', ['open', 'query', 'insert', 'executeWrite']) },
+        { provide: Actions, useFactory: getActions },
+      ]
+    });
+
+    db = TestBed.get(Database);
+    effects = TestBed.get(CollectionEffects);
+    actions$ = TestBed.get(Actions);
+  });
+
 
   describe('openDB$', () => {
     it('should call db.open when initially subscribed to', () => {
-      const {db, collectionEffects} = setup();
-      collectionEffects.openDB$.subscribe();
+      effects.openDB$.subscribe();
       expect(db.open).toHaveBeenCalledWith('books_app');
     });
   });
 
   describe('loadCollection$', () => {
     it('should return a collection.LoadSuccessAction, with the books, on success', () => {
-      const book1 = {id: '111', volumeInfo: {}} as Book;
-      const book2 = {id: '222', volumeInfo: {}} as Book;
+      const action = new collection.LoadAction();
+      const completion = new collection.LoadSuccessAction([book1, book2]);
 
-      const {db, runner, collectionEffects} = setup();
+      actions$.stream = hot('-a', { a: action });
+      const response = cold('-a-b|', { a: book1, b: book2 });
+      const expected = cold('-----c', { c: completion });
+      db.query.and.returnValue(response);
 
-      const booksObservable = Observable.of(book1, book2);
-      db.query.and.returnValue(booksObservable);
-
-      const expectedResult = new collection.LoadSuccessAction([book1, book2]);
-
-      runner.queue(new collection.LoadAction());
-
-      collectionEffects.loadCollection$.subscribe(result => {
-        expect(result).toEqual(expectedResult);
-      });
+      expect(effects.loadCollection$).toBeObservable(expected);
     });
 
     it('should return a collection.LoadFailAction, if the query throws', () => {
-      const {db, runner, collectionEffects} = setup();
+      const action = new collection.LoadAction();
+      const error = 'Error!';
+      const completion = new collection.LoadFailAction(error);
 
-      const error = new Error('msg');
-      db.query.and.returnValue(Observable.throw(error));
+      actions$.stream = hot('-a', { a: action });
+      const response = cold('-#', { }, error);
+      const expected = cold('--c', { c: completion });
+      db.query.and.returnValue(response);
 
-      const expectedResult = new collection.LoadFailAction(error);
-
-      runner.queue(new collection.LoadAction());
-
-      collectionEffects.loadCollection$.subscribe(result => {
-        expect(result).toEqual(expectedResult);
-      });
+      expect(effects.loadCollection$).toBeObservable(expected);
     });
   });
 
   describe('addBookToCollection$', () => {
     it('should return a collection.AddBookSuccessAction, with the book, on success', () => {
-      const book = {id: '111', volumeInfo: {}} as Book;
+      const action = new collection.AddBookAction(book1);
+      const completion = new collection.AddBookSuccessAction(book1);
 
-      const {db, runner, collectionEffects} = setup();
-      db.insert.and.returnValue(Observable.of({}));
+      actions$.stream = hot('-a', { a: action });
+      const response = cold('-b', { b: true });
+      const expected = cold('--c', { c: completion });
+      db.insert.and.returnValue(response);
 
-      const expectedResult = new collection.AddBookSuccessAction(book);
-
-      runner.queue(new collection.AddBookAction(book));
-
-      collectionEffects.addBookToCollection$.subscribe(result => {
-        expect(result).toEqual(expectedResult);
-        expect(db.insert).toHaveBeenCalledWith('books', [book]);
-      });
+      expect(effects.addBookToCollection$).toBeObservable(expected);
+      expect(db.insert).toHaveBeenCalledWith('books', [book1]);
     });
 
     it('should return a collection.AddBookFailAction, with the book, when the db insert throws', () => {
-      const book = {id: '111', volumeInfo: {}} as Book;
+      const action = new collection.AddBookAction(book1);
+      const completion = new collection.AddBookFailAction(book1);
+      const error = 'Error!';
 
-      const {db, runner, collectionEffects} = setup();
-      db.insert.and.returnValue(Observable.throw(new Error()));
+      actions$.stream = hot('-a', { a: action });
+      const response = cold('-#', { }, error);
+      const expected = cold('--c', { c: completion });
+      db.insert.and.returnValue(response);
 
-      const expectedResult = new collection.AddBookFailAction(book);
-
-      runner.queue(new collection.AddBookAction(book));
-
-      collectionEffects.addBookToCollection$.subscribe(result => {
-        expect(result).toEqual(expectedResult);
-        expect(db.insert).toHaveBeenCalledWith('books', [book]);
-      });
+      expect(effects.addBookToCollection$).toBeObservable(expected);
     });
 
     describe('removeBookFromCollection$', () => {
       it('should return a collection.RemoveBookSuccessAction, with the book, on success', () => {
-        const book = {id: '111', volumeInfo: {}} as Book;
+        const action = new collection.RemoveBookAction(book1);
+        const completion = new collection.RemoveBookSuccessAction(book1);
 
-        const {db, runner, collectionEffects} = setup();
-        db.executeWrite.and.returnValue(Observable.of({}));
+        actions$.stream = hot('-a', { a: action });
+        const response = cold('-b', { b: true });
+        const expected = cold('--c', { c: completion });
+        db.executeWrite.and.returnValue(response);
 
-        const expectedResult = new collection.RemoveBookSuccessAction(book);
-
-        runner.queue(new collection.RemoveBookAction(book));
-
-        collectionEffects.removeBookFromCollection$.subscribe(result => {
-          expect(result).toEqual(expectedResult);
-          expect(db.executeWrite).toHaveBeenCalledWith('books', 'delete', ['111']);
-        });
+        expect(effects.removeBookFromCollection$).toBeObservable(expected);
+        expect(db.executeWrite).toHaveBeenCalledWith('books', 'delete', [book1.id]);
       });
 
       it('should return a collection.RemoveBookFailAction, with the book, when the db insert throws', () => {
-        const book = {id: '111', volumeInfo: {}} as Book;
+        const action = new collection.RemoveBookAction(book1);
+        const completion = new collection.RemoveBookFailAction(book1);
+        const error = 'Error!';
 
-        const {db, runner, collectionEffects} = setup();
-        db.executeWrite.and.returnValue(Observable.throw(new Error()));
+        actions$.stream = hot('-a', { a: action });
+        const response = cold('-#', { }, error);
+        const expected = cold('--c', { c: completion });
+        db.executeWrite.and.returnValue(response);
 
-        const expectedResult = new collection.RemoveBookFailAction(book);
-
-        runner.queue(new collection.RemoveBookAction(book));
-
-        collectionEffects.removeBookFromCollection$.subscribe(result => {
-          expect(result).toEqual(expectedResult);
-          expect(db.executeWrite).toHaveBeenCalledWith('books', 'delete', ['111']);
-        });
+        expect(effects.removeBookFromCollection$).toBeObservable(expected);
+        expect(db.executeWrite).toHaveBeenCalledWith('books', 'delete', [book1.id]);
       });
     });
   });

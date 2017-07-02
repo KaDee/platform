@@ -15,7 +15,7 @@ describe('BooksReducer', () => {
   });
 
   describe('SEARCH_COMPLETE & LOAD_SUCCESS', () => {
-    function noExistingBooks(action) {
+    function noExistingBooks(action: any) {
       const book1 = {id: '111'} as Book;
       const book2 = {id: '222'} as Book;
       const createAction = new action([book1, book2]);
@@ -33,7 +33,7 @@ describe('BooksReducer', () => {
       expect(result).toEqual(expectedResult);
     }
 
-    function existingBooks(action) {
+    function existingBooks(action: any) {
       const book1 = {id: '111'} as Book;
       const book2 = {id: '222'} as Book;
       const initialState = {
