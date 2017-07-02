@@ -187,7 +187,6 @@ describe('ngRx Store', () => {
 
       dispatcher.ngOnDestroy();
 
-      expect(storeSubscription.closed).toBe(true);
       expect(dispatcherSubscription.closed).toBe(true);
     });
   });
